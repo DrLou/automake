@@ -1,0 +1,68 @@
+#
+# This file and its contents are supplied under the terms of the
+# Common Development and Distribution License ("CDDL)". You may
+# only use this file in accordance with the terms of the CDDL.
+#
+# A full copy of the text of the CDDL should have accompanied this
+# source. A copy of the CDDL is also available via the Internet at
+# http://www.illumos.org/license/CDDL.
+#
+#
+# Copyright 2012 Louis M. Picciano. All rights reserved.
+#
+
+# This patch contributed by: Stefano Lattarini <stefano.lattarini@gmail.com>
+# [PATCH] tests: fix a spurious failure with the Korn Shell
+# See automake bug#10898.
+
+# At least the AT&T and OpenSolaris versions of the Korn shell have a
+# strange bug regarding the expression ${1+"$@"}: when exactly *one*
+# empty argument is passed to a shell function, inside that function
+# the expression ${1+"$@"} will expand to *nothing*, rather than to
+# to the single empty string, as one would expect.  This was causing
+# a spurious failure in our testsuite when a shell suffering of this
+# bug was used to run the test cases.
+
+# * tests/automake.test: Work around the bug, by avoiding the
+# indirection through the 'AUTOMAKE_fails' function.
+# ---
+#  tests/defs.in |   14 ++++++++++++--
+#  1 files changed, 12 insertions(+), 2 deletions(-)
+# 
+# diff --git a/tests/defs.in b/tests/defs.in
+# index 4990e30..b2061e7 100644
+
+# FIX ME: PATCH AS WRITTEN PROMPTS FOR FILE NAME!
+--- automake-1.11.3/tests/defs.in
++++ automake-1.11.3/tests/defs.in
+@@ -527,7 +527,12 @@ AUTOMAKE_run ()
+   expected_exitcode=$1
+   shift
+   exitcode=0
+-  $AUTOMAKE ${1+"$@"} >stdout 2>stderr || exitcode=$?
++  # This case distinction is required to work around a ksh bug.
++  # See automake bug#10898.
++  case $# in
++    0) $AUTOMAKE ;;
++    *) $AUTOMAKE "$@" ;;
++  esac >stdout 2>stderr || exitcode=$?
+   cat stderr >&2
+   cat stdout
+   test $exitcode = $expected_exitcode || Exit 1
+@@ -539,7 +544,12 @@ AUTOMAKE_run ()
+ # does not exit with STATUS.
+ AUTOMAKE_fails ()
+ {
+-  AUTOMAKE_run 1 ${1+"$@"}
++  # This case distinction is required to work around a ksh bug.
++  # See automake bug#10898.
++  case $# in
++    0) AUTOMAKE_run 1;;
++    *) AUTOMAKE_run 1 "$@";;
++  esac
+ }
+ 
+ commented_sed_unindent_prog='
+-- 
+1.7.9
+
